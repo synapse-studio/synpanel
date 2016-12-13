@@ -1,0 +1,21 @@
+synpanel.settings:
+  path: '/admin/config/system/synpanel'
+  defaults:
+    _form: '\Drupal\synpanel\Form\Settings'
+    _title: 'Biz-panel.com Settings'
+  requirements:
+    _permission: 'administer nodes'
+synpanel.export:
+  path: '/synapse-biz-panel/export'
+  defaults:
+    _controller: '\Drupal\synpanel\Controller\Export::export'
+    _title: 'Export forms'
+  requirements:
+    _permission: 'administer nodes'
+synpanel.json:
+  path: '/synapse-biz-panel/export/{json}'
+  defaults:
+    _controller: '\Drupal\synpanel\Controller\Export::export'
+    _title: 'Export forms'
+  requirements:
+    _permission: 'access content'

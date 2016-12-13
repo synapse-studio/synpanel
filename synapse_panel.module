@@ -1,0 +1,96 @@
+<?php
+/**
+ * @file
+ * Drupal Module: Synapse =pael.
+ * https://www.biz-panel.com
+ */
+
+
+
+
+/**
+ * Implementation of hook_mail_alter().
+ */
+function synapse_panel_mail_alter(&$message) {
+
+  $allowed_emails = explode(',', variable_get('synapse_panel_allowed_recipients', 'all'));
+  foreach ($allowed_emails as $allowed_email) {
+    if (trim($allowed_email) == $message['to'] || $allowed_email == 'all') {
+      if ($message['id'] == 'webform_submission') {
+        $body_footer = theme('synapse_panel_footer');
+        $body_footer = token_replace($body_footer);
+        $message['body'][] = $body_footer;
+      }
+    }
+  }
+  return $message;
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function synapse_panel_theme() {
+  return array(
+    'synapse_panel_footer' => array(
+      'variables' => array(),
+    ),
+  );
+}
+
+/**
+ * Theme the email footer.
+ */
+function theme_synapse_panel_footer($footer) {
+
+  $footer = "\n\n";
+  $footer .= "==========================================================\n";
+  $footer .= t('Synapse Tracker Information (www.biz-panel.com)')."\n";
+  $footer .= "==========================================================\n";
+  $footer .= t('Current IP:')." ".$_SERVER['REMOTE_ADDR']."\n";
+  $footer .= t('Track ID:')." [synapse_panel:piwik-id]\n";
+  $footer .= t('More Detalis:')." ";
+  $footer .= "https://biz-panel.com/traffic/[synapse_panel:piwik-site]/[synapse_panel:piwik-key]?utm_source=forms \n";
+  $footer .= "==========================================================\n\n";
+
+  return $footer;
+}
+
+
+/**
+ * Submission combine.
+ */
+function _synapse_panel_prepare($node, $submission){
+  $data = $submission -> data;
+  //dsm($submission);
+  $results = [];
+  foreach($node -> webform['components'] as $key => $val){
+
+    if(isset($data[$key][1])){
+      $result = $data[$key];
+    }elseif(isset($data[$key][0])){
+      $result = $data[$key][0];
+    }else{
+      $result = "can't get";
+    }
+    $form_key = $val['form_key'];
+    $results[$form_key] = [
+      'lable' => $val['name'],
+      'result' => $result,
+    ];
+  }
+  // Form Result
+  global $base_url;
+  $default_source = str_replace(['http://', 'https://', 'www.'], '', $base_url);
+
+  $form = [
+    'nid'   => $node -> nid,
+    'title' => $node -> title,
+    'sid'   => $submission -> sid,
+    'date'  => $submission -> submitted,
+    'human' => format_date($submission -> submitted, 'custom', 'd M Y, H:i'),
+    'source' => variable_get("synapse_panel_source", $default_source),
+    'results' => $results,
+  ];
+  return $form;
+}
+

@@ -1,0 +1,41 @@
+<?php
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+
+/**
+ * Implements hook_entity_base_field_info().
+ */
+function synpanel_entity_base_field_info(EntityTypeInterface $entity_type) {
+  if ($entity_type->id() == 'contact_message') {
+    $fields = [];
+
+    $fields['piwik']   = BaseFieldDefinition::create('string')
+      ->setLabel(t('Piwik ID'))
+      ->setDescription(t('Piwik ID of the submitter.'))
+      ->setDefaultValueCallback('synpanel_contact_message_default_piwik');
+    $fields['formurl'] = BaseFieldDefinition::create('string')
+      ->setLabel(t('Form URL'))
+      ->setDescription(t('Form URL of the submission.'))
+      ->setDefaultValueCallback('synpanel_contact_message_default_formurl');
+    return $fields;
+  }
+}
+
+/**
+ * piwik:: Default value callback.
+ *
+ * @return int
+ *   The client Piwik id.
+ */
+function  synpanel_contact_message_default_piwik() {
+  return \Drupal::token()->replace('[synpanel:piwik-id]');
+}
+/**
+ * formurl:: Default value callback.
+ *
+ * @return int
+ *   Form URL of the submission.
+ */
+function  synpanel_contact_message_default_formurl() {
+  return 'todo';
+}
