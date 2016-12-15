@@ -1,6 +1,6 @@
 synpanel.settings:
   title: 'Synapse Panel'
-  parent: system.admin_config_system
+  parent: synapse.page
   description: 'Synapse Biz-panel.com'
   route_name: synpanel.settings
 
