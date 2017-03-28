@@ -1,15 +1,14 @@
 <?php
 
+namespace Drupal\synpanel\Controller;
+
 /**
  * @file
  * Contains \Drupal\page_example\Controller\PageExampleController.
  */
 
-namespace Drupal\synpanel\Controller;
-
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Url;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Controller routines for page example routes.
@@ -19,55 +18,54 @@ class Export extends ControllerBase {
   /**
    * Constructs a simple page.
    */
-  public function export($json = false) {
+  public function export($json = FALSE) {
     $config = \Drupal::service('config.factory')->getEditable('synpanel.settings');
-    $base_url = str_replace(['http://', 'https://', 'www.'], '', $_SERVER['SERVER_NAME']);
+    $base_url = str_replace(['http://', 'https://', 'www. '], '', $_SERVER['SERVER_NAME']);
     $data = [
       'code' => '0',
       'message' => 'export off',
-      'description' => 'See '.$base_url.'/admin/config/system/synpanel',
+      'description' => 'See ' . $base_url . '/admin/config/system/synpanel',
     ];
     $key = '';
-    $skip_ip_limit = true;
-    if($config->get('panel-ipcontrol')){
-      $skip_ip_limit = false;
+    $skip_ip_limit = TRUE;
+    if ($config->get('panel-ipcontrol')) {
+      $skip_ip_limit = FALSE;
       $data = [
         'code' => '5',
         'message' => 'ip limit',
-        'description' => 'See '.$base_url.'/admin/config/system/synpanel',
+        'description' => 'See ' . $base_url . '/admin/config/system/synpanel',
       ];
       $ips = explode(',', $config->get('panel-ip'));
-      foreach ($ips as $ip){
-        if ($_SERVER["REMOTE_ADDR"] == trim($ip)){
-          $skip_ip_limit = true;
+      foreach ($ips as $ip) {
+        if ($_SERVER["REMOTE_ADDR"] == trim($ip)) {
+          $skip_ip_limit = TRUE;
         }
       }
     }
 
-    if($config->get('panel-export') && isset($_GET['key']) && $skip_ip_limit){
-      if ($_GET['key'] == substr($config->get('panel-key'), 0, 15)){
-        $key = '?key='.$_GET['key'];
+    if ($config->get('panel-export') && isset($_GET['key']) && $skip_ip_limit) {
+      if ($_GET['key'] == substr($config->get('panel-key'), 0, 15)) {
+        $key = '?key=' . $_GET['key'];
         $from  = strtotime('first day of today -3 month');
         $limit = 300;
 
-        if (isset($_GET['limit']) && is_numeric($_GET['limit'])){
+        if (isset($_GET['limit']) && is_numeric($_GET['limit'])) {
           $limit = $_GET['limit'];
         }
-        if (isset($_GET['from'])){
-           $from  = strtotime($_GET['from']);
-          //  $from  = strtotime('today -3 weeks');
+        if (isset($_GET['from'])) {
+          $from = strtotime($_GET['from']);
         }
 
         $nids_skip = explode(',', $config->get('panel-skip'));
         $skip = [];
-        foreach ($nids_skip as $nid){
+        foreach ($nids_skip as $nid) {
           $skip[] = trim($nid);
         }
 
         $piwik_site = $config->get('panel-piwik-siteid');
         $forms = [];
 
-        // получаем данные по существующим формам
+        // получаем данные по существующим формам.
         $formNids = \Drupal::entityQuery('contact_form')->execute();
         $entitys = entity_load_multiple('contact_form', $formNids);
         // dsm($entitys);
@@ -79,13 +77,13 @@ class Export extends ControllerBase {
           ];
         }
 
-        // получаем данные по полученным сообщениям
+        // Получаем данные по полученным сообщениям.
         $query = \Drupal::entityQuery('contact_message')->condition('created', $from, '>');
         $messageNids = $query->execute();
         $entitys = entity_load_multiple('contact_message', $messageNids);
 
         global $base_url;
-        $default_source = str_replace(['http://', 'https://', 'www.'], '', $base_url);
+        $default_source = str_replace(['http://', 'https://', 'www. '], '', $base_url);
         $source = $config->get('panel-source');
         if (!isset($source)) {
           $source = $default_source;
@@ -97,10 +95,10 @@ class Export extends ControllerBase {
 
           $fields = [];
           foreach ($array as $key => $value) {
-            if (!(strripos($key,'field') === false)) {
+            if (!(strripos($key, 'field') === FALSE)) {
               $fields[$key] = [
-               'result' => isset($value[0]['value']) ? $value[0]['value'] : '',
-               'lable' => $element->getFieldDefinition($key)->getLabel(),
+                'result' => isset($value[0]['value']) ? $value[0]['value'] : '',
+                'lable' => $element->getFieldDefinition($key)->getLabel(),
               ];
             }
           }
@@ -125,56 +123,33 @@ class Export extends ControllerBase {
         // dsm($messages);
         $forms = array_reverse($messages);
 
-        // $entityTypes = entity_get_bundles();
-
-        // $entity = entity_load('contact_message', 14)->getFieldDefinition('field_form_email')->getLabel();
-        // $entity = $entitys[14]->toArray();
-
-
-        /*
-        $query = db_select('webform_submissions', 'ws');
-        $query ->fields('ws', array('nid', 'sid', 'submitted', 'remote_addr'))
-               ->addTag('webform_get_submissions_sids')
-               ->condition('ws.submitted', $from, '>')
-               ->condition('ws.nid', $skip, 'NOT IN')
-               ->orderBy('ws.submitted', 'DESC')
-               ->range(0, $limit);
-        $result = $query->execute();
-        foreach ($result as $row) {
-          $node = node_load($row->nid);
-          $submission = webform_get_submission($row->nid, $row->sid);
-          $form = _synapse_panel_prepare($node, $submission);
-          $form['piwik-key'] = $submission -> remote_addr;
-          $form['site-id']    = variable_get("synapse_panel_site");
-          $form['piwik-site'] = $piwik_site;
-          $forms[] = $form;
-          //dsm($submission);
-        }*/
-
         $data = [
           'code' => '1',
           'message' => 'ok',
-          'description' => 'See '.$base_url.'/admin/config/system/synpanel',
+          'description' => 'See ' . $base_url . '/admin/config/system/synpanel',
           'forms' => $forms,
         ];
-      }else{
+      }
+      else {
         $data = [
           'code' => '2',
           'message' => 'wrong key',
-          'description' => 'See '.$base_url.'/admin/config/system/synpanel',
+          'description' => 'See ' . $base_url . '/admin/config/system/synpanel',
         ];
       }
     }
 
-    if($json){
-      $response = new \Symfony\Component\HttpFoundation\Response(json_encode($data, JSON_UNESCAPED_UNICODE));
+    if ($json) {
+      $response = new Response(json_encode($data, JSON_UNESCAPED_UNICODE));
       $response->headers->set('Content-Type', 'application/json');
       return $response;
-    }else{
-      $output = '<a href="/synapse-biz-panel/export/json'.$key.'">json here</a>';
+    }
+    else {
+      $output = '<a href="/synapse-biz-panel/export/json' . $key . '">json here</a>';
       return array(
         '#markup' => '<p>' . $output . '</p>',
       );
     }
   }
+
 }
